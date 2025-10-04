@@ -85,10 +85,10 @@
         </div>
     </div>
 
-    <script>
+  <script>
         // --- CONFIGURAÇÃO DA API ---
-        // ⚠️ IMPORTANTE: Substitua "SEU_API_TOKEN" pelo seu token real da TriboPay.
-        const TRIBO_API_TOKEN = '9KmaMgRE2IIAjU74pWR49Xmh4JQj6njOt2gx2M6ohCfgIoMZWgXnVwHFblG3';
+        // ⚠️ IMPORTANTE: Substitua "SEU_TOKEN_AQUI" pelo seu Bearer Token real do Pushin Pay.
+        const PUSHINPAY_API_TOKEN = '37964|4LYoUpkrlfElReHmLnZGrOen2eWGFCNaYAsVoodkeb206456';
         // ---------------------------
 
         // Seletores de elementos do DOM
@@ -107,124 +107,101 @@
         let paymentCheckInterval;
         let countdownInterval;
 
-        // --- INTEGRAÇÃO COM A API "TriboPay" ---
+        // --- INTEGRAÇÃO COM A API "Pushin Pay" ---
 
         /**
-         * Gera um código PIX usando a API da TriboPay.
-         * @returns {Promise<object>} Uma promessa que resolve com os dados da transação.
+         * Gera um código PIX usando a API do Pushin Pay.
+         * @returns {Promise<object>} Uma promessa que resolve com os dados do PIX.
          */
         async function generatePixAPI() {
             console.log("API: Gerando PIX...");
-            const url = `https://api.tribopay.com.br/api/public/v1/transactions?api_token=${TRIBO_API_TOKEN}`;
-            
-            const uniqueOfferHash = `offer_${Date.now()}`;
-            const uniqueProductHash = `prod_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
+            const url = 'https://api.pushinpay.com.br/api/pix/cashIn';
             const options = {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Authorization': `Bearer ${PUSHINPAY_API_TOKEN}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    "amount": 1990,
-                    "offer_hash": uniqueOfferHash,
-                    "payment_method": "pix",
-                    "installments": 1, 
-                    "customer": {
-                        "name": "João Silva",
-                        "email": "joao@email.com",
-                        "phone_number": "21999999999",
-                        "document": "09115751031"
-                    },
-                    "cart": [{
-                        "product_hash": uniqueProductHash,
-                        "title": "Plano ELITE",
-                        "price": 1690,
-                        "quantity": 1,
-                        "operation_type": 1,
-                        "tangible": false
-                    }]
+                    "value": 51, // Valor em centavos (R$ 1,00)
+                    "webhook_url": "https://seu-site.com", // Altere se necessário
+                    "split_rules": []
                 })
             };
 
             const response = await fetch(url, options);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Erro na API: ${errorData.message || response.statusText}`);
+            }
             const data = await response.json();
             
-            if (!response.ok) {
-                console.error('Erro na API:', data);
-                throw new Error(data.message || `Erro na API: ${response.status}`);
-            }
+            // CORREÇÃO: Acessa os dados diretamente na resposta da API, que é um objeto plano.
+            const transactionId = data?.id;
+            const pixCode = data?.qr_code; // O código "copia e cola"
+            const qrCodeUrl = data?.qr_code_base64; // A API já retorna a URL completa com o prefixo base64
 
-            // CORREÇÃO: Acessa os dados da API na estrutura correta, conforme o log de erro.
-            const transactionHash = data?.hash;
-            const pixCode = data?.pix?.pix_qr_code;
-
-            if (!transactionHash || !pixCode) {
-                 console.error("Resposta da API incompleta:", data);
-                throw new Error('A resposta da API de geração de PIX está em formato inesperado.');
+            // Adiciona uma verificação para garantir que os dados essenciais foram recebidos
+            if (!transactionId || !pixCode || !qrCodeUrl) {
+                console.error("Resposta da API incompleta ou em formato inesperado:", data);
+                throw new Error('A resposta da API de geração de PIX está incompleta ou em formato inválido.');
             }
             
-            // CORREÇÃO: Gera a URL do QR Code usando um serviço externo, já que a API retorna null para a imagem.
-            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixCode)}`;
-            
-            console.log("API: PIX Gerado.", { hash: transactionHash, pixCode });
-            return {
-                hash: transactionHash,
-                pixCode: pixCode,
-                qrCodeUrl: qrCodeUrl
-            };
+            console.log("API: PIX Gerado.", { transactionId, pixCode });
+            return { transactionId, pixCode, qrCodeUrl };
         }
 
         /**
          * Verifica o status de pagamento de uma transação.
-         * @param {string} hash - O hash da transação a ser verificada.
+         * @param {string} transactionId - O ID da transação a ser verificada.
          * @returns {Promise<object>} Uma promessa que resolve com o status do pagamento.
          */
-        async function checkPaymentStatusAPI(hash) {
-            console.log(`API: Verificando status para ${hash}...`);
-            const url = `https://api.tribopay.com.br/api/public/v1/transactions/${hash}?api_token=${TRIBO_API_TOKEN}`;
+        async function checkPaymentStatusAPI(transactionId) {
+            console.log(`API: Verificando status para ${transactionId}...`);
+            const url = `https://api.pushinpay.com.br/api/transactions/${transactionId}`;
             const options = {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Authorization': `Bearer ${PUSHINPAY_API_TOKEN}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 }
             };
             
             const response = await fetch(url, options);
-            const data = await response.json();
-
             if (!response.ok) {
-                console.warn(`API: Não foi possível verificar o status. Status: ${response.status}`, data);
+                // Não trata como erro fatal, pois a transação pode ainda não estar processada
+                console.warn(`API: Não foi possível verificar o status. Status: ${response.status}`);
                 return { status: 'PENDING' };
             }
             
-            // CORREÇÃO: Acessa o status na estrutura correta da API.
-            const currentStatus = data?.payment_status;
-            const status = currentStatus === 'paid' ? 'PAID' : 'PENDING';
-            console.log(`API: Status retornado: ${currentStatus} -> ${status}`);
+            const data = await response.json();
+            
+            // CORREÇÃO: Acessa o status na estrutura correta da API, assumindo uma resposta mais plana.
+            const status = data?.status === 'paid' ? 'PAID' : 'PENDING';
+            console.log(`API: Status retornado: ${status}`);
             return { status };
         }
 
         // --- LÓGICA DA APLICAÇÃO ---
 
         async function startPixProcess() {
-            if (TRIBO_API_TOKEN === 'SEU_API_TOKEN') {
-                alert('Por favor, configure seu API_TOKEN no código JavaScript.');
+            if (PUSHINPAY_API_TOKEN === 'SEU_TOKEN_AQUI') {
+                alert('Por favor, configure seu Bearer Token no código JavaScript.');
                 return;
             }
             initialState.classList.add('hidden');
             loadingState.classList.remove('hidden');
 
             try {
-                const { hash, pixCode, qrCodeUrl } = await generatePixAPI();
+                const { transactionId, pixCode, qrCodeUrl } = await generatePixAPI();
                 pixCodeInput.value = pixCode;
                 qrCodeImage.src = qrCodeUrl;
                 loadingState.classList.add('hidden');
                 pendingState.classList.remove('hidden');
-                startTimer(600); // 5 minutos = 300 segundos
-                startPaymentMonitoring(hash);
+                startTimer(300); // 5 minutos = 300 segundos
+                startPaymentMonitoring(transactionId);
             } catch (error) {
                 console.error("Falha ao gerar o PIX:", error);
                 alert(`Ocorreu um erro: ${error.message}`);
@@ -246,11 +223,12 @@
             }, 1000);
         }
 
-        function startPaymentMonitoring(hash) {
+        function startPaymentMonitoring(transactionId) {
+            // Limpa qualquer monitoramento anterior para evitar duplicatas
             if (paymentCheckInterval) clearInterval(paymentCheckInterval);
 
             paymentCheckInterval = setInterval(async () => {
-                const { status } = await checkPaymentStatusAPI(hash);
+                const { status } = await checkPaymentStatusAPI(transactionId);
                 if (status === 'PAID') {
                     clearInterval(paymentCheckInterval);
                     clearInterval(countdownInterval);
