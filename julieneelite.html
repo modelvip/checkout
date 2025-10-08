@@ -137,7 +137,7 @@
         <div id="waitingSection" class="hidden">
             <h2>Aguardando Confirmação</h2>
             <p>Não feche esta página. Estamos a verificar o seu pagamento.</p>
-            <div class="timer" id="timerDisplay">01:00</div>
+            <div class="timer" id="timerDisplay">00:10</div>
         </div>
         
         <!-- SEÇÃO 3 -->
@@ -154,7 +154,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const pixCode = "00020126580014BR.GOV.BCB.PIX013696bca7b0-ce19-408a-a13c-feae4799dfef520400005303986540535.005802BR592560.805.708 JULIENE DE PAU6009SAO PAULO61080540900062250521UvvZHy2KPNPkZr7abx3y96304BC7E";
             const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixCode)}`;
-            const countdownTimeInSeconds = 60;
+            const countdownTimeInSeconds = 10;
 
             const qrCodeImg = document.getElementById('qrCodeImg');
             const copyPixBtn = document.getElementById('copyPixBtn');
@@ -177,7 +177,7 @@
                     // Mostra botão "Já Paguei" depois de 60s após copiar
                     setTimeout(() => {
                         paidBtn.classList.remove('hidden-btn');
-                    }, 60000);
+                    }, 20000);
 
                     // Volta o texto do botão após 2s
                     setTimeout(() => {
