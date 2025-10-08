@@ -137,7 +137,7 @@
         <div id="waitingSection" class="hidden">
             <h2>Aguardando Confirmação</h2>
             <p>Não feche esta página. Estamos a verificar o seu pagamento.</p>
-            <div class="timer" id="timerDisplay">01:00</div>
+            <div class="timer" id="timerDisplay">00:10</div>
         </div>
         
         <!-- SEÇÃO 3 -->
@@ -174,10 +174,10 @@
                 navigator.clipboard.writeText(pixCode).then(() => {
                     copyPixBtn.textContent = 'Copiado!';
                     
-                    // Mostra botão "Já Paguei" depois de 60s após copiar
+                    // Mostra botão "Já Paguei" depois de 30s após copiar
                     setTimeout(() => {
                         paidBtn.classList.remove('hidden-btn');
-                    }, 60000);
+                    }, 30000);
 
                     // Volta o texto do botão após 2s
                     setTimeout(() => {
@@ -191,8 +191,8 @@
                 let timer = countdownTimeInSeconds;
                 
                 function updateDisplay() {
-                    const minutes = Math.floor(timer / 60);
-                    const seconds = timer % 60;
+                    const minutes = Math.floor(timer / 10);
+                    const seconds = timer % 10;
                     timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
                 }
 
