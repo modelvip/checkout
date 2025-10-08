@@ -154,7 +154,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const pixCode = "00020126580014BR.GOV.BCB.PIX013696bca7b0-ce19-408a-a13c-feae4799dfef52040000530398654049.905802BR592560.805.708 JULIENE DE PAU6009SAO PAULO61080540900062250521AEEbrzJfrAnNY4Cabx3y96304EE05";
             const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixCode)}`;
-            const countdownTimeInSeconds = 60;
+            const countdownTimeInSeconds = 10;
 
             const qrCodeImg = document.getElementById('qrCodeImg');
             const copyPixBtn = document.getElementById('copyPixBtn');
